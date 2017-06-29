@@ -1,0 +1,79 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+# Exploring user behavior on Snapshots at Sea
+
+```{r, results = "hide"}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(ggplot2)
+library(treemap)
+library(stringr)
+library(magrittr)
+
+```
+
+
+Define functions
+```{r, results = "hide"}
+
+#summarize input file: group by user and count classifications 
+summarize_user_classifications <- function(dataset, col_name){
+     dataset$user <- dataset[[col_name]]
+     data_out <- dataset %>% 
+          mutate(., user = ifelse(str_detect(user, pattern = "not-logged-in"), "not-logged-in", user)) %>%
+          group_by(., user) %>%
+          summarise(., num_classifications = n()) %>% #count the number of classifications per user
+          arrange(., -num_classifications) %>% #don't know why desc(num_classifications) isn't working
+          add_rownames() #index for the treemap
+     return(data_out)
+}
+```
+
+
+Read in and summarize user data: in this case, snapshots at sea
+```{r}
+
+classifications <- fread("../Data/snapshots-at-sea-classifications.csv", select = 1:8)
+
+demo_dat <- summarize_user_classifications(classifications, "user_name")
+
+print(demo_dat)
+
+```
+
+Look at user classification activity
+```{r}
+ggplot(data = dat, aes(x=num_classifications)) + geom_density()
+
+```
+```{r}
+ggplot(data = dat, aes(x=num_classifications)) + geom_density() + scale_x_log10()
+
+```
+
+```{r}
+ggplot(data = dat, aes(x=num_classifications)) + geom_histogram(bins = 100) + scale_x_log10()
+
+```
+
+Looking at the distribution for just the lowest 100 classifiers
+```{r}
+ggplot(data = filter(dat, num_classifications <= 100), aes(x=num_classifications)) + geom_bar() 
+
+```
+
+```{r}
+ggplot(data = filter(dat, num_classifications <= 25), aes(x=num_classifications)) + geom_bar() 
+
+```
+
+```{r}
+treemap(dtf = dat, index = "rowname", vSize = "num_classifications", border.lwds = .1, fontsize.labels = 4)
+```
+
+

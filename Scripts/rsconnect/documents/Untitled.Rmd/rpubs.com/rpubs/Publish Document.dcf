@@ -1,0 +1,8 @@
+name: Publish Document
+title:
+account: rpubs
+server: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/278373/a2ad498ed2c249819b5cfa7c9fce576f
+bundleId: https://api.rpubs.com/api/v1/document/278373/a2ad498ed2c249819b5cfa7c9fce576f
+url: http://rpubs.com/aliburchard/278373
+when: 1495274440.7026

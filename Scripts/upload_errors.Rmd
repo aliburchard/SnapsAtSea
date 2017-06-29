@@ -1,0 +1,60 @@
+---
+title: "Uploading Errors - fixing subjects"
+output: html_notebook
+---
+
+If you've ever uploaded subjects, you know that it can be hard to make sure you've got them all uploaded correctly. "Deleting" the set actually just creates a bunch of orphaned images that take up space on the server, and just re-loading the manifest will create duplicates that will be a pain to sort through later.
+
+To upload properly, you'll need to download a copy of the SUBJECTS EXPORT from the data export tab, extract the filenames from the metadata column, and compare to your original manifest.
+
+
+```{r}
+library(tidyjson)
+library(dplyr)
+library(jsonlite)
+library(magrittr)
+```
+
+
+```{r}
+#read in manifest - the images you intend to upload
+manifest <- read.csv("~/Desktop/ZooniverseConsulting/SAS-Experiment/subjects/original/original_manifest.csv", stringsAsFactors = F)
+
+#read in subject export - the images that actually loaded
+subjects <- read.csv("~/Downloads/snapshots-at-sea-subjects.csv", stringsAsFactors = F) 
+
+# filter to JUST the needed subject set, which is identified next to your subject set's name
+subjects %<>% filter(., subject_set_id == 12613)
+head(subjects)
+```
+
+The metadata column is in JSON, but the column will probably be named "filename" or something similar. Use the "prettify" function from jsonlite to look inside.
+```{r}
+subjects$metadata[1] %>% prettify
+
+```
+
+So parse the JSON column by grabbing the values for the "filename" key. Oddly, you'll have one row for every workflow in your project, even if that subject_set isn't linked to that workflow. So just ignore that and grab unique values only.
+```{r}
+
+flat <- subjects %>% 
+     select(., subject_id, subject_set_id, metadata) %>%
+     as.tbl_json(json.column = "metadata") %>% #parse JSON
+     spread_values(filename = jstring("filename")) %>% 
+     unique(.)
+
+head(flat)
+```
+
+Check to see what from the original manifest is missing from the subject export.
+```{r}
+missing <- anti_join(manifest, flat)
+head(missing)
+```
+
+Write this as a new manifest. Uploading via the CLI means you can leave it in the original directory and only the missing images will upload. If you need to upload via the project builder GUI, you'll need to manually move all of the "missing" photos to a new directory to upload.
+
+```{r}
+write.csv(missing, file = "~/Desktop/ZooniverseConsulting/SAS-Experiment/subjects/original/missing_original_manifest.csv", row.names = F)
+
+```

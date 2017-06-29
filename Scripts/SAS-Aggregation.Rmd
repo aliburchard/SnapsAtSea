@@ -1,0 +1,110 @@
+---
+title: "SAS-Aggregation"
+output: html_document
+---
+
+```{r setup, include = F}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(magrittr)
+library(jsonlite)
+library(tidyjson)
+library(stringr)
+library(ggplot2)
+```
+
+
+Pull in data: Note that fread doesn't properly parse the quotes around the JSON blobs, so you need to use read.csv even though it's 5x slower.
+```{r pull in data}
+#classifications <- fread("../Data/snapshots-at-sea-classifications.csv", select = c(1:8, 12, 14))
+classifications <- read.csv("../Data/snapshots-at-sea-classifications.csv", stringsAsFactors = F)
+```
+
+
+Explore data to identify which workflows, versions, and date ranges to keep data from
+```{r clean data}
+classifications %<>% mutate(., created_at = ymd_hms(created_at)) #set created_at to a date field
+summary(classifications)
+
+classification_summary <- classifications %>% 
+     group_by(., workflow_id, workflow_version) %>% 
+     summarise(., count = n(), text = first(workflow_name), first = min(created_at), last = max(created_at)) %>% 
+     arrange(., workflow_version)
+
+print(classification_summary)
+
+```
+
+```{r prep data}
+
+# filter to relevant workflow versions & workflow ID
+workflow_id_set <- 505
+workflow_version_set <- 4.16
+
+current_data <- classifications %>% 
+     filter(., workflow_id == workflow_id_set, workflow_version == workflow_version_set) %>%
+     arrange(., created_at) %>%
+     mutate(., counter = row_number())
+
+#which classifications do you keep? look at the timing of them...
+ggplot(data = current_data, aes(x = created_at, y = counter)) + geom_line(aes())
+```
+
+Limit date range
+```{r}
+#filter to data after 2017!
+current_data %<>% filter(., created_at > ymd("2017-01-01"))
+
+#rm(classifications) #drop the original file from memory because it's too massive
+summary(current_data)
+
+```
+
+# Parsing/Flattening JSON
+
+### Some notes on JSON.
+
+1. It appears that [] signal the start and end of a JSON array, and both rjson and jsonlite have issues interpreting a vector of JSON blobs. You can force them to read through the column one row at a time, grabbing classification IDs from other columns so you can link back later. Or you can just use tidyjson, which does this for you. Wish I'd known this 6 hours ago.
+
+2. Note that tidyjson struggles with navigating the structure of subject_data because the subject ID is given as the key, and not as a key:value pair.
+
+```{r extract annotations from json}
+# note that jsonlite and rjson only work if you loop through each record, because they are separate arrays. similarly, all JSON parsers have issues parsing the subject data because the subject ID is stored as the key itself, not a value in an ID:IDNumber key:value pairing.
+
+filtered_dat <- current_data
+flattened <- filtered_dat %>% 
+     select(., -subject_data, -metadata) %>%
+     as.tbl_json(json.column = "annotations") %>%
+     gather_array %>%
+     spread_values(
+               task = jstring("task"),
+               task_label = jstring("task_label"),
+               value = jstring("value")
+     )
+
+head(flattened)
+dim(flattened)
+```
+
+# Aggregation 
+```{r aggregate by subject id and workflow}
+
+aggregated <- flattened %>% 
+     mutate(., answer = ifelse(value == "No", 0, 1)) %>%
+     group_by(., subject_ids, workflow_id, workflow_name, workflow_version) %>%
+     summarise(., total_votes = n(), total_yes = sum(answer), prop_yes = sum(answer)/n()) %>%
+     mutate(., keep = as.factor(ifelse(prop_yes > 0.45, "T", "F")))
+     
+glimpse(aggregated)
+```
+
+Keep set for next workflow
+```{r}
+subjects_Q4 <- aggregated %>% filter(., keep == "T")
+summary(subjects_Q4)
+write.csv(x = subjects_Q4, file = "../Data/subjects_for_Q4.csv")
+```
