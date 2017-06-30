@@ -3,6 +3,8 @@ library(jsonlite)
 library(tidyjson)
 source("Scripts/functions.R")
 
+
+
 q1 <- read.csv("data/yes-no-q1-classifications.csv", stringsAsFactors = F)
 q2 <- read.csv("data/yes-no-q2-classifications.csv", stringsAsFactors = F)
 q3 <- read.csv("data/yes-no-q3-classifications.csv", stringsAsFactors = F)
@@ -18,34 +20,49 @@ for (i in 100000:100010) {
      
 #grab started at, finished at, viewport, and subject_diension...maybe user_agent
 
-flattened <- grab_classification_metadata(all_dat_raw)
-flat_with_mobile <- grab_mobile_info(flattened)
-
-data_out <- flat_with_mobile %>% select(., subject_ids, 
-                                        classification_id, 
-                                        user_name, 
-                                        user_id, 
-                                        user_ip, 
-                                        workflow_id, 
-                                        workflow_name, 
-                                        workflow_version,
-                                        created_at,
-                                        annotations,
-                                        started_at,
-                                        finished_at,
-                                        device)
-
-flattened <- grab_classification_metadata(all_dat_raw)
-flat_with_mobile <- grab_mobile_info(flattened)
-write.csv(data_out, "data/SAS_dat_with_metadata.csv", row.names = F)
+SAS_dat <- all_dat_raw %>%
+     grab_classification_metadata() %>%
+     grab_mobile_info() %>%
+     keep_metadata_rows()
 
 
-
+write.csv(SAS_dat, "outputs/SAS_dat_with_metadata.csv", row.names = F)
 
 
 ### Grab metadata for other projects
 
-ele <- read.csv(input = "data/elephant-expedition-classifications.csv")
-flattened <- grab_classification_metadata(ele)
-flat_with_mobile <- grab_mobile_info(flattened)
+
+ele <- read.csv("data/elephant-expedition-classifications.csv", stringsAsFactors = F)
+ele_dat <- ele %>%
+     grab_classification_metadata() %>%
+     grab_mobile_info() %>%
+     keep_metadata_rows()
+write.csv(ele_dat, "outputs/ele_dat_with_metadata.csv", row.names = F)
+
+whales <- read.csv("data/whales-as-individuals-classifications.csv", stringsAsFactors = F)
+whale_dat <- whales %>%
+     grab_classification_metadata() %>%
+     grab_mobile_info() %>%
+     keep_metadata_rows()
+write.csv(whale_dat, "outputs/whale_dat_with_metadata.csv", row.names = F)
+
+wisc <- read.csv("data/snapshot-wisconsin-classifications.csv", stringsAsFactors = F)
+wisc_dat <- wisc %>%
+     grab_classification_metadata() %>%
+     grab_mobile_info() %>%
+     keep_metadata_rows()
+write.csv(wisc_dat, "outputs/wisc_dat_with_metadata.csv", row.names = F)
+
+kenya <- read.csv("data/wildwatch-kenya-classifications.csv", stringsAsFactors = F)
+kenya_dat <- kenya %>%
+     grab_classification_metadata() %>%
+     grab_mobile_info() %>%
+     keep_metadata_rows()
+write.csv(kenya_dat, "outputs/kenya_dat_with_metadata.csv", row.names = F)
+
+
+
+
+
+
 

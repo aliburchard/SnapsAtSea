@@ -1,9 +1,8 @@
-library(data.table)
 library(dplyr)
-library(dtplyr)
 library(magrittr)
 library(stringr)
 library(lubridate)
+library(tidyr)
 
 library(ggplot2)
 library(scales)
@@ -11,142 +10,64 @@ library(reldist)
 library(ineq)
 
 source("Scripts/functions.R")
-# 
-# # Read Data
-# q1 <- fread("data/yes-no-q1-classifications.csv") 
-# q2 <- fread("data/yes-no-q2-classifications.csv") 
-# q3 <- fread("data/yes-no-q3-classifications.csv") 
-# q4 <- fread("data/yes-no-q4-classifications.csv")
-# survey <- fread("data/survey-classifications.csv") 
-# 
-# 
-# 
-# ## Create list of old users
-# user_dat <- do.call(rbind, list(q1, q2, q3, q4))
-# 
-# old_users <- user_dat %>% 
-#      filter(., ymd_hms(created_at) < ymd("2017-06-06")) %>% 
-#      distinct(user_name) %>%
-#      group_non_logged()
-# 
-# write.csv(old_users, "outputs/previous_users.csv")
 
+sas <- read.csv("outputs/SAS_data_all.csv") %>% tbl_df 
 
+# other_proj <- read.csv("outputs/other_proj_all.csv") %>% tbl_df
+# all_dat <- rbind(sas, other_proj)
 
-
-# #start date: 06-06-2017 - only keep records after that, well, sort of.
-# lapply(list(q1, q2, q3, q4, survey), check_workflow)
-# 
-# # Since Q4 was active, need to drop extra classifications.
-# x <- q4 %>% mutate(., created_at = ymd_hms(created_at)) %>%
-#      filter(., created_at > ymd("2017-06-20")) %>%
-#      group_by(., workflow_id, workflow_version) %>% 
-#      arrange(ymd_hms(created_at)) %>% 
-#      mutate(., counter = row_number(created_at))
-# 
-# ggplot(data = x, aes(created_at, y = counter)) + geom_line()
-# 
-# q4 %<>% filter(., ymd_hms(created_at) > ymd("2017-06-20")) 
-# 
-# dat <- lapply(X = list(q1, q2, q3, q4, survey), prep_data)
-# combined <- do.call(what = rbind, args = dat)
-
-# specify workflow-style
-# combined %<>% mutate(., project = "snapshots", experiment = ifelse(workflow_name == "Survey", "survey", "yesno"))
-# 
-# # specify user-status
-# dat <- lapply(X = list(q1, q2, q3, q4), keep_before)
-# all_classifications <- do.call(what = rbind, args = dat)
-# old_users <- all_classifications %>% distinct(user_name)
-# write.csv(previous_users, "outputs/previous_users.csv")
-# new_users <- combined %>% filter(., !(as.character(user_name) %in% as.character(old_users$user_name))) %>% distinct(user_name)
-# old_user_list <- as.character(old_users$user_name)
-# new_user_list <- as.character(new_users$user_name)
-# 
-# 
-# combined_SAS <- combined %>% mutate( user_name = as.character(user_name)) %>%
-#      mutate(user_status = ifelse(user_name == "not-logged-in", "not-logged-in",
-#                                  ifelse(user_name %in% new_user_list, "new",  
-#                                         ifelse(user_name %in% old_user_list, "old", "WTF"))))
-# 
-# write.csv(combined_SAS, "outputs/SAS_combined_classifications.csv", row.names = F)
-
-
-
-# # Grab and compare to some other projects
-# ele <- fread(input = "data/elephant-expedition-classifications.csv")
-# check_workflow(ele)
-# ele %<>% filter(., workflow_version == 30.30) %>%
-#      prep_data(., start = "2017-02-27") %>%
-#      mutate(., project = "elephant")
-#
-# wisc <- fread("data/snapshot-wisconsin-classifications.csv")
-# check_workflow(wisc)
-# wisc %<>% filter(., workflow_version %in% c(337.98, 552.99, 197.40, 189.40)) %>%
-#      prep_data(., start = "2016-05-16") %>%
-#      mutate(., project = "wisconsin")
-#
-# whales <- fread("data/whales-as-individuals-classifications.csv")
-# check_workflow(whales) %>% View
-# whales %<>% prep_data(., start = "2015-06-30") %>%
-#      mutate(., project = "whales")
-#
-# kenya <- fread("data/wildwatch-kenya-classifications.csv")
-# check_workflow(kenya) %>% View
-# kenya %<>% prep_data(., start = "2017-06-19") %>%
-#      mutate(., project = "kenya")
-#
-# other_proj <- do.call(rbind, list(ele, kenya, wisc, whales))
-# other_proj <- other_proj %>% 
-#      mutate(experiment = project, user_status = "NA")
-# write.csv(other_proj, file = "outputs/other_projects_combined.csv", row.names = F)
-
-
-
-
-combined <- read.csv("outputs/SAS_combined_classifications.csv")
-other_proj <- read.csv("outputs/other_projects_combined.csv")
-all_dat <- rbind(combined, other_proj)
-
-combined %<>% tbl_df(.)
-all_dat %<>% tbl_df(.)
-
-
-# Grab coefficients
-gini_dat_workflow <- combined %>% 
-     group_by(., workflow_name, user_name) %>%
+# set sas timestamps to lubridate timestamps
+# started_at = ymd_hms(gsub(x=started_at, pattern = "T|.[0-9]{3}Z", replacement = " ")), # you don't need to parse this because lubridate is FUCKING AMAZING
+sas %<>% 
+  mutate(., created_at = ymd_hms(created_at),
+       started_at = ymd_hms(started_at),
+       finished_at = ymd_hms(finished_at)) %>%
+  mutate(., duration = as.numeric(difftime(finished_at, started_at, units = "secs")))
+  
+# Grab coefficients - results depend a bit on how you treat non-logged-in users. Do you discard them altogether?
+sas %>% filter(experiment_status == "experiment") %>%
+  group_by(., project, experiment, user_status) %>%
+  summarise(., total_class = n_distinct(classification_id), 
+            total_users = n_distinct(user_name))  
+sas %>% 
+     group_by(., project, experiment, workflow_name, experiment_status, user_status, user_name) %>%
      summarise(., num_classifications = n()) %>% #count the number of classifications per user
-     summarise(., gini = gini(num_classifications)) #grouped to experiment, so gini is per experiment
+     summarise(., gini = gini(num_classifications), 
+               total_class = sum(num_classifications), 
+               total_users = n_distinct(user_name)) #grouped to experiment, so gini is per experiment
 
-gini_dat <- all_dat %>% 
-     group_by(., experiment, user_name) %>%
-     summarise(., num_classifications = n()) %>% #count the number of classifications per user
-     summarise(., gini = gini(num_classifications)) #grouped to experiment, so gini is per experiment
+sas %>% filter(., experiment_status == "experiment", user_status %in% c("new", "old")) %>%
+  group_by(., project, experiment, workflow_name, experiment_status, user_status, user_name) %>%
+  summarise(., num_classifications = n()) %>% #count the number of classifications per user
+  summarise(., gini = gini(num_classifications), 
+            total_class = sum(num_classifications), 
+            total_users = n_distinct(user_name)) #grouped to experiment, so gini is per experiment
 
-all_dat %>% 
-     group_by(., experiment, user_status, user_name) %>%
-     summarise(., num_classifications = n()) %>% #count the number of classifications per user
-     summarise(., gini = gini(num_classifications)) #grouped to experiment, so gini is per experiment
+#write.csv(overall_summary, "outputs/overall_summary.csv")
+#write.csv(workflow_summary, "outputs/workflow_summary.csv")
 
-# Summarize
-workflow_summary <- combined %>% group_by(., workflow_name) %>% 
-     summarise(., total_classifications = n(), total_users = n_distinct(user_name)) %>%
-     left_join(., gini_dat_workflow)
-
-overall_summary <- all_dat %>% group_by(., experiment) %>% 
-     summarise(., total_classifications = n(), total_users = n_distinct(user_name)) %>%
-     left_join(., gini_dat)
-
-write.csv(overall_summary, "outputs/overall_summary.csv")
-write.csv(workflow_summary, "outputs/workflow_summary.csv")
 # Count up total amount of time spent on the workflow
-# 
-# data_out <- combined %>% 
-#      group_by(., experiment, user_name) %>%
-#      summarise(., num_classifications = n()) %>% #count the number of classifications per user
-#      arrange(., experiment, num_classifications) %>% 
-#      group_by(., experiment) %>% 
-#      mutate(., id = row_number()) 
+class_times <- sas %>% 
+  filter(., duration < 60*5)
+
+ggplot(data = class_times, aes(duration, fill = user_status, colour = user_status)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid(workflow_name ~ .)
+
+
+ggplot(data = class_times, aes(duration, fill = workflow_name, colour = workflow_name)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid( device ~ user_status)
+
+
+ggplot(data = class_times, aes(duration, fill = workflow_name, colour = workflow_name)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid( device ~ .)
+
+ggplot(data = class_times, aes(duration, fill = device, colour = device)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid( workflow_name ~ .)
+
 
 #Grab Lorenz data
 grab_lorenz <- function(data, class_per_user = "num_classifications") {
@@ -157,61 +78,72 @@ grab_lorenz <- function(data, class_per_user = "num_classifications") {
 }
 
 
-lorenz_by_wf <- combined %>% 
-     group_by(., workflow_name, user_name) %>%
-     summarise(., num_classifications = n()) %>%
-     do(grab_lorenz(., class_per_user = "num_classifications"))
+# lorenz_by_wf <- sas %>% 
+#      group_by(., workflow_name, user_name) %>%
+#      summarise(., num_classifications = n()) %>%
+#      do(grab_lorenz(., class_per_user = "num_classifications"))
+# 
+# pdf(file = "Figures/lorenz_within_SAS.pdf", width = 12, height = 7)
+# ggplot(lorenz_by_wf, aes(x = prop_user, y = prop_class, color = workflow_name)) + 
+#      geom_line(size = 1.5) + 
+#      labs(x = "proportion of volunteers", y = "proportion of classifications") +
+#      geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
+# dev.off()
 
-pdf(file = "Figures/lorenz_within_SAS.pdf", width = 12, height = 7)
-ggplot(lorenz_by_wf, aes(x = prop_user, y = prop_class, color = workflow_name)) + 
-     geom_line(size = 1.5) + 
-     labs(x = "proportion of volunteers", y = "proportion of classifications") +
-     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
+# # plot against other projects
+# lorenz_all_proj <- all_dat %>% 
+#      group_by(., experiment, user_name) %>%
+#      summarise(., num_classifications = n()) %>%
+#      do(grab_lorenz(., class_per_user = "num_classifications"))
+# 
+# pdf(file = "Figures/lorenz_all_projects.pdf", width = 12, height = 7)
+# ggplot(lorenz_all_proj, aes(x = prop_user, y = prop_class, color = experiment)) + 
+#      geom_line(size = 1.5) + 
+#      labs(x = "proportion of volunteers", y = "proportion of classifications") +
+#      geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
+# dev.off()
+# 
+# 
+# pdf(file = "Figures/lorenz_SAS_only.pdf", width = 12, height = 7)
+# ggplot(filter(lorenz_all_proj, experiment %in% c("survey", "yesno")), aes(x = prop_user, y = prop_class, color = experiment)) + 
+#      geom_line(size = 1.5) + 
+#      labs(x = "proportion of volunteers", y = "proportion of classifications") +
+#      geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
+# dev.off()
+# 
+# 
+# ### lorenz by user type
+# lorenz_by_user <- all_dat %>% filter(., user_status != "not-logged-in") %>%
+#      group_by(., experiment, user_status, user_name) %>%
+#      summarise(., num_classifications = n()) %>%
+#      do(grab_lorenz(., class_per_user = "num_classifications"))
+# 
+# pdf(file = "Figures/lorenz_new_v_old.pdf", width = 12, height = 7)
+# ggplot(filter(lorenz_by_user, project == "snapshots"), aes(x = prop_user, y = prop_class, color = experiment, linetype = user_status)) + 
+#      geom_line(size = 1.5) + 
+#      labs(x = "proportion of volunteers", y = "proportion of classifications") +
+#      geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
+# dev.off()
+# 
+# pdf(file = "Figures/lorenz_new_v_old_all.pdf", width = 12, height = 7)
+# ggplot(lorenz_by_user, aes(x = prop_user, y = prop_class, color = experiment, linetype = user_status)) + 
+#      geom_line(size = 1.5) + 
+#      labs(x = "proportion of volunteers", y = "proportion of classifications") +
+#      geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
+# dev.off()
+# 
+
+lorenz <- sas %>% filter(experiment_status == "experiment") %>%
+  group_by(., project, experiment, user_status, user_name) %>%
+  summarise(., num_classifications = n()) %>%
+  do(grab_lorenz(., class_per_user = "num_classifications"))
+
+pdf(file = "Figures/lorenz_user_status.pdf", width = 12, height = 7)
+ggplot(lorenz, aes(x = prop_user, y = prop_class, color = experiment, linetype = user_status)) + 
+  geom_line(size = 1.5) + 
+  labs(x = "proportion of volunteers", y = "proportion of classifications") +
+  geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
 dev.off()
-
-# plot against other projects
-lorenz_all_proj <- all_dat %>% 
-     group_by(., experiment, user_name) %>%
-     summarise(., num_classifications = n()) %>%
-     do(grab_lorenz(., class_per_user = "num_classifications"))
-
-pdf(file = "Figures/lorenz_all_projects.pdf", width = 12, height = 7)
-ggplot(lorenz_all_proj, aes(x = prop_user, y = prop_class, color = experiment)) + 
-     geom_line(size = 1.5) + 
-     labs(x = "proportion of volunteers", y = "proportion of classifications") +
-     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
-dev.off()
-
-
-
-pdf(file = "Figures/lorenz_SAS_only.pdf", width = 12, height = 7)
-ggplot(filter(lorenz_all_proj, experiment %in% c("survey", "yesno")), aes(x = prop_user, y = prop_class, color = experiment)) + 
-     geom_line(size = 1.5) + 
-     labs(x = "proportion of volunteers", y = "proportion of classifications") +
-     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
-dev.off()
-
-
-### lorenz by user type
-lorenz_by_user <- all_dat %>% filter(., user_status != "not-logged-in") %>%
-     group_by(., experiment, user_status, user_name) %>%
-     summarise(., num_classifications = n()) %>%
-     do(grab_lorenz(., class_per_user = "num_classifications"))
-
-pdf(file = "Figures/lorenz_new_v_old.pdf", width = 12, height = 7)
-ggplot(filter(lorenz_by_user, project == "snapshots"), aes(x = prop_user, y = prop_class, color = experiment, linetype = user_status)) + 
-     geom_line(size = 1.5) + 
-     labs(x = "proportion of volunteers", y = "proportion of classifications") +
-     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
-dev.off()
-
-pdf(file = "Figures/lorenz_new_v_old_all.pdf", width = 12, height = 7)
-ggplot(lorenz_by_user, aes(x = prop_user, y = prop_class, color = experiment, linetype = user_status)) + 
-     geom_line(size = 1.5) + 
-     labs(x = "proportion of volunteers", y = "proportion of classifications") +
-     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16)
-dev.off()
-
 ######## Cumulative classifications
 
 # too hard to compare when durations are so different
@@ -227,7 +159,7 @@ dev.off()
 #      geom_line(aes(y = project_counter))
 
 # Jumped through a lot of damn hoops to compare across projects, but that's just silly
-cum_class <- combined %>%
+cum_class <- sas %>%
      mutate(created_at = ymd_hms(created_at)) %>%
      group_by(., experiment) %>%
      arrange(., created_at) %>%
@@ -267,4 +199,9 @@ ggplot(data = filter(cum_class, experiment %in% c("survey", "yesno")),
      scale_x_datetime(name="",labels = date_format("%b %d")) +
      labs(y = "cumulative classifications")
 dev.off()
+
+
+
+
+### How long to make a classification?
 

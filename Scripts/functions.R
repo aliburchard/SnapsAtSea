@@ -1,3 +1,11 @@
+library(dplyr)
+library(magrittr)
+library(stringr)
+library(lubridate)
+library(jsonlite)
+library(tidyjson)
+
+
 check_workflow <- function(data){
      require(lubridate)
      data %>% group_by(workflow_id, workflow_version) %>%
@@ -34,26 +42,51 @@ group_non_logged <- function(dataset) {
 
 
 
-#### FLATTENING FUNCTIONS
+#### FLATTENING FUNCTIONS - this is going to drop classifications
 grab_classification_metadata <- function(q_data) {
-     out <- q_data %>% 
+     out_times <- q_data %>% 
           as.tbl_json(., json.column = "metadata") %>%
           spread_values(started_at = jstring("started_at"), 
                         finished_at = jstring("finished_at"), 
-                        user_agent = jstring("user_agent")) %>%
-          enter_object("viewport") %>%
-          spread_values(viewport_width = jstring("width"),
-                        viewport_height = jstring("height"))
+                        user_agent = jstring("user_agent")) 
+     
+     out_viewport <- q_data %>% 
+       as.tbl_json(., json.column = "metadata") %>%
+       enter_object("viewport") %>%
+       spread_values(viewport_width = jstring("width"),
+                     viewport_height = jstring("height"))
+     
+     out <- left_join(out_times, out_viewport)
      return(out)
 }
 
 
 
-grab_mobile_info <- function(data, mobile_strings = c("mobile", "Mobile", "iPhone", "Android"), ipad = c("iPad")) {
-     out <- data %>% mutate(., mobile = str_detect(user_agent, pattern = mobile_strings), 
-                            ipad = str_detect(user_agent, pattern = ipad)) %>%
-          mutate(., device = ifelse(mobile == T, "mobile",
-                                    ifelse(ipad == T, "ipad", "computer")))
+grab_mobile_info <- function(data, mobile_pattern = "(mobile|iphone|android)", ipad = "ipad", app = "mobile app") {
+     out <- data %>% 
+          mutate(., mobile = str_detect(str_to_lower(user_agent), pattern = mobile_pattern), 
+                    ipad =   str_detect(str_to_lower(user_agent), pattern = ipad),
+                    app =    str_detect(str_to_lower(user_agent),  pattern = app)) %>%
+          mutate(., device = ifelse(app == T, "mobile_app", 
+                                    ifelse(ipad == T, "ipad",
+                                           ifelse(mobile == T, "mobile_browser", "computer"))))
      return(out)
      
 }
+
+keep_metadata_rows <- function(data) {
+     data_out <- data %>% select(., subject_ids, 
+                                             classification_id, 
+                                             user_name, 
+                                             user_id, 
+                                             user_ip, 
+                                             workflow_id, 
+                                             workflow_name, 
+                                             workflow_version,
+                                             created_at,
+                                             started_at,
+                                             finished_at,
+                                             #mobile, ipad, app,
+                                             device)
+}
+

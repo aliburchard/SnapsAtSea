@@ -1,3 +1,6 @@
+rm(list = ls())
+
+
 library(data.table)
 library(dplyr)
 library(dtplyr)
@@ -11,6 +14,9 @@ library(ineq)
 
 source("Scripts/functions.R")
 
+# # This requires data created by grab_classification_metadata.R
+# # so, source("Scripts/grab_classification_metadata.R") # THIS TAKES ABOUT 30 Min to run.
+# 
 # # Read Data
 # q1 <- fread("data/yes-no-q1-classifications.csv")
 # q2 <- fread("data/yes-no-q2-classifications.csv")
@@ -58,46 +64,64 @@ source("Scripts/functions.R")
 # 
 # 
 # # Grab metadata that was extracted from the JSON
-# classification_metadata <- fread("outputs/SAS_dat_with_metadata.csv") %>% select( -V1)
-# sas_dat <- left_join(combined_SAS_dat, classification_metadata) %>% select(., -annotations)
+# classification_metadata <- fread("outputs/SAS_dat_with_metadata.csv")
+# sas_dat <- left_join(combined_SAS_dat, classification_metadata)
 # write.csv(sas_dat, "outputs/SAS_data_all.csv", row.names = F)
+# 
 
-# Grab and compare to some other projects
-ele <- fread(input = "data/elephant-expedition-classifications.csv")
-check_workflow(ele)
-ele %<>% filter(., workflow_version == 30.30) %>%
-     trim_cols %>%
-     filter(., ymd_hms(created_at) > ymd("2017-02-27")) %>%
-     mutate(., project = "elephant")
+# # Grab and compare to some other projects
+# ele <- fread(input = "data/elephant-expedition-classifications.csv")
+# check_workflow(ele)
+# ele %<>% filter(., workflow_version == 30.30) %>%
+#      trim_cols %>%
+#      filter(., ymd_hms(created_at) > ymd("2017-02-27")) %>%
+#      mutate(., project = "elephant")
+# 
+# 
+# wisc <- fread("data/snapshot-wisconsin-classifications.csv")
+# check_workflow(wisc)
+# wisc %<>% filter(., workflow_version %in% c(337.98, 552.99, 197.40, 189.40)) %>%
+#      trim_cols %>%
+#      filter(., ymd_hms(created_at) > ymd("2016-05-16")) %>%
+#      mutate(., project = "wisconsin") 
+# 
+# whales <- fread("data/whales-as-individuals-classifications.csv")
+# check_workflow(whales) %>% View
+# whales %<>% 
+#      trim_cols %>%
+#      filter(., ymd_hms(created_at) > ymd("2015-06-30")) %>%
+#      mutate(., project = "whales")
+# 
+# kenya <- fread("data/wildwatch-kenya-classifications.csv")
+# check_workflow(kenya) %>% View
+# kenya %<>% 
+#      trim_cols %>%
+#      filter(., ymd_hms(created_at) > ymd("2017-06-19")) %>%
+#      mutate(., project = "kenya")
+# 
+# other_proj <- do.call(rbind, list(ele, kenya, wisc, whales))
+# 
+# other_proj <- other_proj %>%
+#   group_non_logged %>%
+#   mutate(experiment = project, user_status = ifelse(user == "not-logged-in", "not-logged-in", "registered")) %>%
+#   mutate(., experiment_status = "non-experiment") %>% 
+#   select(subject_ids:created_at, experiment_status, project:device)
+# 
+# # pull in metadata from other projects, just to compare!
+# write.csv(other_proj, file = "outputs/other_projects_combined.csv", row.names = F)
 
 
-wisc <- fread("data/snapshot-wisconsin-classifications.csv")
-check_workflow(wisc)
-wisc %<>% filter(., workflow_version %in% c(337.98, 552.99, 197.40, 189.40)) %>%
-     trim_cols %>%
-     filter(., ymd_hms(created_at) > ymd("2016-05-16")) %>%
-     mutate(., project = "wisconsin") 
-
-whales <- fread("data/whales-as-individuals-classifications.csv")
-check_workflow(whales) %>% View
-whales %<>% 
-     trim_cols %>%
-     filter(., ymd_hms(created_at) > ymd("2015-06-30")) %>%
-     mutate(., project = "whales")
-
-kenya <- fread("data/wildwatch-kenya-classifications.csv")
-check_workflow(kenya) %>% View
-kenya %<>% 
-     trim_cols %>%
-     filter(., ymd_hms(created_at) > ymd("2017-06-19")) %>%
-     mutate(., project = "kenya")
-
-other_proj <- do.call(rbind, list(ele, kenya, wisc, whales))
-
-other_proj <- other_proj %>%
-     mutate(experiment = project, user_status = "NA")
-write.csv(other_proj, file = "outputs/other_projects_combined.csv", row.names = F)
-
-
+# # Now combine other projects with classification metadata
+# other_proj <- fread("outputs/other_projects_combined.csv")
+# 
+# # Grab metadata that was extracted from the JSON
+# ele_metadata <- fread("outputs/ele_dat_with_metadata.csv") 
+# whales_metadata <- fread("outputs/whale_dat_with_metadata.csv") 
+# wisc_metadata <- fread("outputs/wisc_dat_with_metadata.csv") 
+# kenya_metadata <- fread("outputs/kenya_dat_with_metadata.csv") 
+# 
+# other_meta <- rbind(ele_metadata, whales_metadata, wisc_metadata, kenya_metadata)
+# all_other_dat <- left_join(other_proj, other_meta) 
+# write.csv(all_other_dat, "outputs/other_proj_all.csv", row.names = F)
 
 
