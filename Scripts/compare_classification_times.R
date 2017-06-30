@@ -3,10 +3,8 @@ library(magrittr)
 library(stringr)
 library(lubridate)
 library(tidyr)
-
 library(ggplot2)
 library(scales)
-library(reldist)
 library(ineq)
 
 source("Scripts/functions.R")
@@ -20,3 +18,28 @@ sas %<>%
          started_at = ymd_hms(started_at),
          finished_at = ymd_hms(finished_at)) %>%
   mutate(., duration = as.numeric(difftime(finished_at, started_at, units = "secs")))
+
+
+
+# Count up total amount of time spent on the workflow
+class_times <- sas %>% 
+  filter(., duration < 60*5)
+
+ggplot(data = class_times, aes(duration, fill = user_status, colour = user_status)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid(workflow_name ~ .)
+
+
+ggplot(data = class_times, aes(duration, fill = workflow_name, colour = workflow_name)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid( device ~ user_status)
+
+
+ggplot(data = class_times, aes(duration, fill = workflow_name, colour = workflow_name)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid( device ~ .)
+
+ggplot(data = class_times, aes(duration, fill = device, colour = device)) + 
+  geom_density(alpha = .2) + scale_x_log10() +
+  facet_grid( workflow_name ~ .)
+

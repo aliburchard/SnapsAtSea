@@ -46,29 +46,6 @@ sas %>% filter(., experiment_status == "experiment", user_status %in% c("new", "
 #write.csv(overall_summary, "outputs/overall_summary.csv")
 #write.csv(workflow_summary, "outputs/workflow_summary.csv")
 
-# Count up total amount of time spent on the workflow
-class_times <- sas %>% 
-  filter(., duration < 60*5)
-
-ggplot(data = class_times, aes(duration, fill = user_status, colour = user_status)) + 
-  geom_density(alpha = .2) + scale_x_log10() +
-  facet_grid(workflow_name ~ .)
-
-
-ggplot(data = class_times, aes(duration, fill = workflow_name, colour = workflow_name)) + 
-  geom_density(alpha = .2) + scale_x_log10() +
-  facet_grid( device ~ user_status)
-
-
-ggplot(data = class_times, aes(duration, fill = workflow_name, colour = workflow_name)) + 
-  geom_density(alpha = .2) + scale_x_log10() +
-  facet_grid( device ~ .)
-
-ggplot(data = class_times, aes(duration, fill = device, colour = device)) + 
-  geom_density(alpha = .2) + scale_x_log10() +
-  facet_grid( workflow_name ~ .)
-
-
 #Grab Lorenz data
 grab_lorenz <- function(data, class_per_user = "num_classifications") {
      class_per_user <- data[[class_per_user]]
@@ -201,7 +178,4 @@ ggplot(data = filter(cum_class, experiment %in% c("survey", "yesno")),
 dev.off()
 
 
-
-
-### How long to make a classification?
 
