@@ -67,9 +67,9 @@ grab_mobile_info <- function(data, mobile_pattern = "(mobile|iphone|android)", i
           mutate(., mobile = str_detect(str_to_lower(user_agent), pattern = mobile_pattern), 
                     ipad =   str_detect(str_to_lower(user_agent), pattern = ipad),
                     app =    str_detect(str_to_lower(user_agent),  pattern = app)) %>%
-          mutate(., device = ifelse(app == T, "mobile_app", 
+          mutate(., device = ifelse(app == T, "swipe_app", 
                                     ifelse(ipad == T, "ipad",
-                                           ifelse(mobile == T, "mobile_browser", "computer"))))
+                                           ifelse(mobile == T, "mobile", "computer"))))
      return(out)
      
 }
