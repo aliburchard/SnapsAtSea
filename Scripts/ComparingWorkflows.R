@@ -178,4 +178,26 @@ ggplot(data = filter(cum_class, experiment %in% c("survey", "yesno")),
 dev.off()
 
 
+### Instantaneous classification rates
 
+head(sas)
+
+
+# group by day 
+daily_class <- sas %>% 
+     filter(., experiment_status == "experiment") %>%
+     mutate(hour = round_date(created_at, unit = "hour")) %>%
+     group_by(experiment, hour) %>%
+     summarise(hourly_classifications = n_distinct(classification_id), hourly_users = n_distinct(user_name))
+
+launches <- read.csv("data/launch_times.csv", nrows = 9)[, 1:2]
+
+launches %<>% mutate(., launch_time = ymd_hms(Date), Event = str_trim(Event, side = "both"))
+
+pdf("Figures/instantaneous_classifications.pdf", width = 12, height = 6)
+ggplot(daily_class, aes(x = hour, y = hourly_classifications)) + 
+     geom_line(aes(colour = experiment), size = 1.2) +
+     geom_vline(data = filter(launches, Event == "Newsletter"), aes(xintercept = as.numeric(launch_time)), colour = "dark blue", linetype = "dashed", size = 1.2) +
+     geom_vline(data = filter(launches, Event == "New Data"), aes(xintercept = as.numeric(launch_time)), colour = "dark gray", linetype = "dashed", size = 1.2) +
+     theme_bw(base_size = 16) + scale_x_datetime(name="",labels = date_format("%b %d")) 
+dev.off()

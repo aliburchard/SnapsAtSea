@@ -38,7 +38,7 @@ source("Scripts/functions.R")
 # 
 # q2_cleaned <- q2 %>% trim_cols %>%
 #      filter(., workflow_version == 3.24) %>% #clean to real workflows, specify before and after experiment
-#      mutate(., experiment_status = ifelse(ymd_hms(created_at) >= ymd_hms("2017-06-13 01:24:00"), "experiment", "non-experiment"))
+#      mutate(., experiment_status = ifelse(ymd_hms(created_at) >= ymd_hms("2017-06-12 08:46:11"), "experiment", "non-experiment"))
 # 
 # q3_cleaned <- q3 %>% trim_cols %>%
 #      filter(., workflow_version == 4.16) %>% #clean to real workflows, specify before and after experiment
@@ -46,7 +46,7 @@ source("Scripts/functions.R")
 # 
 # q4_cleaned <- q4 %>% trim_cols %>%
 #      filter(., workflow_version == 4.11) %>% #clean to real workflows, specify before and after experiment
-#      mutate(., experiment_status = ifelse(ymd_hms(created_at) >= ymd_hms("2017-06-24 05:03:00"), "experiment", "non-experiment"))
+#      mutate(., experiment_status = ifelse(ymd_hms(created_at) >= ymd_hms("2017-06-21 09:32:09"), "experiment", "non-experiment"))
 # 
 # # Combine datasets and specify experiment branch
 # combined <- rbind(survey_cleaned, q1_cleaned, q2_cleaned, q3_cleaned, q4_cleaned) %>%

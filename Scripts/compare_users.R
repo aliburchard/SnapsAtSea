@@ -3,6 +3,7 @@ library(forcats)
 library(tidyjson)
 library(printr)
 
+sas <- read.csv("outputs/SAS_data_all.csv")
 
 with_non_loggeds <- sas %>% filter(., experiment_status == "experiment") %>%
   group_by(user, user_name, experiment, user_status) %>% 
@@ -18,7 +19,7 @@ with_non_loggeds <- sas %>% filter(., experiment_status == "experiment") %>%
 
 # How many people classified on only one workflow or the other, vs both.
 
-pdf("Figures/volunteers_per_workflow.pdf")
+jpeg("Figures/volunteers_per_workflow.jpg")
 ggplot(with_non_loggeds, aes(workflows)) + geom_bar(aes(fill = user_status)) + 
   labs(y = "number of volunteers") + scale_fill_manual(values = c("#DADADA", "#00BDC2", "#F8766D")) +
   theme_bw(base_size = 16)
@@ -40,11 +41,12 @@ sas_with_user  <- users %>%
   ungroup %>% 
   select(user, workflows) %>% 
   distinct() %>%
-  left_join(sas, .) 
+  left_join(sas, .) %>%
+  filter(., experiment_status == "experiment")
 
 
 # look at classifications by these different types.
-pdf(file = "Figures/classifications_per_workflow.pdf")
+jpeg(file = "Figures/classifications_per_workflow.jpg")
 ggplot(sas_with_user, aes(experiment)) + 
   geom_bar(aes(fill=workflows), position = "dodge") +
   labs(y = "number of classifications", x = "workflow style") + theme_bw(base_size = 16)
@@ -89,5 +91,7 @@ user_summaries_by_workflow_preference <- sas_with_user %>% left_join(., user_tal
 
 write.csv(user_summaries_by_workflow_preference, "outputs/user_summaries.csv")
 
-
-  
+library(gridExtra)
+pdf("Figures/user_summaries.pdf", height=3, width=11)
+grid.table(user_summaries_by_workflow_preference)
+dev.off()
