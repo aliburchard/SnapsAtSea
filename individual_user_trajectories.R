@@ -28,6 +28,5 @@ ggplot(data = sas2, aes(x = counter, y = experiment, group = user)) +
 ggplot(data = sas2, aes(x = created_at, y = experiment, group = user)) + 
   geom_line(position=position_jitter(w=0.0, h=0.0), aes(color = user), alpha = .5) + theme_bw() + theme(legend.position = "none")
 
-
 ggplot(data = sas2, aes(x = created_at, y = experiment, group = user)) + 
   geom_line(position=position_dodge(w=1), aes(color = user), alpha = .5) + theme_bw() + theme(legend.position = "none")
