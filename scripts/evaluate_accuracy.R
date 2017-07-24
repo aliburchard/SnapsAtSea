@@ -49,11 +49,6 @@ gold_yesno <- yesno %>% filter(., gold_standard == "true") %>%
      mutate(expert_answer = value) %>%
      distinct(., subject_ids, workflow_name, expert_answer)
 
-
-gold_yesno <- yesno %>% filter(., user_name == "tedcheese") %>%
-     mutate(expert_answer = value) %>%
-     distinct(., subject_ids, workflow_name, expert_answer)
-
 yesno_data <- inner_join(yesno, gold_yesno) %>% 
      mutate(value = as.factor(value), expert_answer = as.factor(expert_answer)) %>%
      mutate(correct = ifelse(value == expert_answer, 1, 0)) %>% 
@@ -87,7 +82,7 @@ agg_data %>% filter(correct == 0) %>% View
 #augh, manual consensus running on the next scrip over.
 consensus_dat <- read.csv("data/survey_aggregation.csv")
 
-gold_survey <- survey_dat %>% filter(., user_name == "tedcheese") %>% 
+gold_survey <- survey_dat %>% filter(., gold_standard == "true") %>% 
      mutate(gold_choice = choice, gold_tail = tail, gold_humpback = humpback) %>%
      select(., subject_ids, gold_choice, gold_tail, gold_humpback)
 
