@@ -14,24 +14,30 @@
 
 library(tidyverse)
 
-survey <- read.csv("data/survey_responses.csv")
+vol_survey <- read.csv("data/survey_responses.csv", na.strings = "")
 names <- c("Timestamp", "id", "other_projects", "type_projects", "age", "gender", "education", "workflow", "prefer_workflow", "why", "device")
-names(survey) <- names
+names(vol_survey) <- names
 
-survey %>% filter(prefer_workflow == "Survey Workflow") %>% summary
-survey %>% filter(prefer_workflow == "Yes/No Workflow") %>% summary
+vol_survey %>% filter(prefer_workflow == "Survey Workflow") %>% summary
+vol_survey %>% filter(prefer_workflow == "Yes/No Workflow") %>% summary
 
+prefer_workflow_levels <- c("Survey Workflow", "Prefer not to say", "Yes/No Workflow", "Both")
+color_levels <- c()
 ed_levels <- c("Prefer not to say", "High school or lower", "Some university", "University degree", "Graduate degree")
 
-data <- survey %>% filter(workflow == "Both") %>% 
+data <- vol_survey %>% filter(workflow == "Both") %>% 
      select(., id, age, gender, education, prefer_workflow) %>%
-     mutate(education = factor(education, ed_levels)) 
+     mutate(education = factor(education, ed_levels), prefer_workflow = factor(prefer_workflow, prefer_workflow_levels)) 
 
-age_plot <- ggplot(data, aes(x = age)) + geom_bar(aes(fill = prefer_workflow)) + theme_bw() + theme(legend.position = "none")
-gender_plot <- ggplot(data, aes(x = gender)) + geom_bar(aes(fill = prefer_workflow)) + theme_bw() + theme(legend.position = "none")
-ed_plot <- ggplot(data, aes(x = education)) + geom_bar(aes(fill = prefer_workflow)) + theme_bw() + theme(legend.position = "none")
+
+age_plot <- ggplot(filter(data, age != "Prefer not to say"), aes(x = age)) + geom_bar(aes(fill = prefer_workflow), position = "fill") + theme_bw() + theme(legend.position = "none")
+gender_plot <- ggplot(filter(data, gender != "Prefer not to say"), aes(x = gender)) + geom_bar(aes(fill = prefer_workflow), position = "fill") + theme_bw() + theme(legend.position = "none")
+ed_plot <- ggplot(filter(data, education != "Prefer not to say"), aes(x = education)) + geom_bar(aes(fill = prefer_workflow), position = "fill") + 
+     theme_bw() + theme(legend.position = "bottom")
+
+legend <- ggplot(data, aes(x = education)) + geom_bar(aes(fill = prefer_workflow)) + theme_bw() + theme(legend.position = "bottom")
 
 quartz()
-grid.arrange(age_plot, gender_plot, ed_plot, ncol = 3)
-ggplot(data, aes(x = workflow_preference, fill = prefer_workflow)) + geom_bar() + facet_grid(. ~ variable, scale = "free_x")
-
+grid.arrange(age_plot, gender_plot, ed_plot, nrow = 3)
+legend
+data %>% gr
