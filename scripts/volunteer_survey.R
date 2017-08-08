@@ -13,7 +13,7 @@
 # brooke's paper w/ gini coefficients
 
 library(tidyverse)
-
+library(gridExtra)
 vol_survey <- read.csv("data/survey_responses.csv", na.strings = "")
 names <- c("Timestamp", "id", "other_projects", "type_projects", "age", "gender", "education", "workflow", "prefer_workflow", "why", "device")
 names(vol_survey) <- names
@@ -22,10 +22,10 @@ vol_survey %>% filter(prefer_workflow == "Survey Workflow") %>% summary
 vol_survey %>% filter(prefer_workflow == "Yes/No Workflow") %>% summary
 
 prefer_workflow_levels <- c("Survey Workflow", "Prefer not to say", "Yes/No Workflow", "Both")
-color_levels <- c()
 ed_levels <- c("Prefer not to say", "High school or lower", "Some university", "University degree", "Graduate degree")
+age_levels <- c("<18", "18-24", "24-34", "35-44", "45-54", "55-64", "65+")
 
-data <- vol_survey %>% filter(workflow == "Both") %>% 
+data <- vol_survey %>% #filter(workflow == "Both") %>% 
      select(., id, age, gender, education, prefer_workflow) %>%
      mutate(education = factor(education, ed_levels), prefer_workflow = factor(prefer_workflow, prefer_workflow_levels)) 
 
@@ -40,4 +40,73 @@ legend <- ggplot(data, aes(x = education)) + geom_bar(aes(fill = prefer_workflow
 quartz()
 grid.arrange(age_plot, gender_plot, ed_plot, nrow = 3)
 legend
-data %>% gr
+
+ggplot(data, aes(x=prefer_workflow)) + geom_bar(aes(fill = age), position = "stack")
+
+
+
+age_summary <- data %>% group_by(age, prefer_workflow) %>% 
+     summarise(n = n()) %>% 
+     filter(prefer_workflow != "Prefer not to say", age != "Prefer not to say") %>% 
+     mutate(percent = n/sum(n), total = sum(n)) %>%
+     gather(key = question, value = category, -prefer_workflow, -n, -percent, -total)
+
+edu_summary <- data %>% group_by(education, prefer_workflow) %>% 
+     summarise(n = n()) %>% 
+     filter(prefer_workflow != "Prefer not to say", education != "Prefer not to say") %>% 
+     mutate(percent = n/sum(n), total = sum(n)) %>%
+     gather(key = question, value = category, -prefer_workflow, -n, -percent, -total)
+
+gender_summary <- data %>% group_by(gender, prefer_workflow) %>% 
+     summarise(n = n()) %>% 
+     filter(prefer_workflow != "Prefer not to say", gender != "Prefer not to say") %>% 
+     mutate(percent = n/sum(n), total = sum(n)) %>%
+     gather(key = question, value = category, -prefer_workflow, -n, -percent, -total) %>%
+     mutate()
+
+summary_dat <- rbind(age_summary, edu_summary, gender_summary) %>% 
+     mutate(category = as.factor(category)) %>% 
+     mutate(category = fct_relevel(f = category, "Graduate degree", after = Inf)) %>%
+     mutate(category = fct_recode(f = category,   "<18" = "17 or younger", 
+                                                  "High school \n or lower" = "High school or lower", 
+                                                  "Graduate \n degree" = "Graduate degree",
+                                                  "Some \n university" = "Some university",
+                                                  "University \n degree" = "University degree")) %>%
+     mutate(preference = fct_relevel(f = prefer_workflow, c("Both", "Survey Workflow", "Yes/No Workflow"))) %>%
+     mutate(preference = fct_recode(f = preference, "Survey" = "Survey Workflow", "Yes/No" = "Yes/No Workflow"))
+
+samples <- summary_dat %>% distinct(question, category, total) 
+sample_size <- geom_text(data=samples,aes(x=category,y=.95,label=total),
+          inherit.aes=FALSE)
+color_levels <- c("#C77CFF","#F8766D", "#00BDC2") 
+
+ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + 
+     geom_bar(stat = "identity") + facet_grid(~question,scales="free",space="free") + scale_fill_manual(values = color_levels)
+ggplot(data = summary_dat, aes(x = category, y = percent, fill = preference)) + geom_bar(stat = "identity") + 
+     facet_grid(~question,scales="free",space="free") + sample_size + scale_fill_manual(values = color_levels)
+
+
+
+ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_bar(stat = "identity", position = "dodge") + 
+     facet_grid(preference~question,scales="free",space="free") + scale_fill_manual(values = color_levels)
+
+
+pdf(file = "figures/Figure6_1.pdf", width = 12.5, height = 4)
+ggplot(data = summary_dat, aes(x = category, y = percent, fill = preference)) + theme_bw() +
+     geom_bar(stat = "identity") + facet_grid(~question, scales="free",space="free") + sample_size + scale_fill_manual(values = color_levels)
+dev.off()
+
+pdf(file = "figures/Figure6_2.pdf", width = 12.5, height = 4)
+ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + theme_bw() +
+     geom_bar(stat = "identity") + facet_grid(~question, scales="free",space="free") + scale_fill_manual(values = color_levels)
+dev.off()
+
+pdf(file = "figures/Figure6_3.pdf", width = 12.5, height = 4)
+ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_bar(stat = "identity", position = "dodge") + 
+     facet_grid(~question, scales ="free", space="free", shrink = T,drop = T) + scale_fill_manual(values = color_levels) + theme_bw()
+dev.off()
+
+pdf(file = "figures/Figure6_4.pdf", width = 12.5, height = 4)
+ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_bar(stat = "identity", position = "dodge") + 
+     facet_wrap(~question, nrow = 3, scales="free")  + scale_fill_manual(values = color_levels) + theme_bw()
+dev.off()

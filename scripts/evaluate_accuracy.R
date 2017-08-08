@@ -12,7 +12,7 @@ q3 <- read.csv("data/yes-no-q3-classifications.csv", stringsAsFactors = F)
 q4 <- read.csv("data/yes-no-q4-classifications.csv", stringsAsFactors = F)
 survey <- read.csv("data/survey-classifications.csv", stringsAsFactors = F) 
 
-all_dat_raw <- rbind(q1, q2, q3, q4, survey)
+all_dat_raw <- rbind(q1, q2, q3, q4)
 # Extract needed info from json
 
 for (i in 100000:100010) {
@@ -44,6 +44,9 @@ survey_dat <- survey %>% # survey classifications are going to have > 1 row per 
 # AUGH, except we can't just add to the SAS data because there is more than one record per classification.
 # So all accuracy analyses have to be done separately.
 
+yesno %>% filter(subject_ids == 919841)
+yesno %>% filter(gold_standard != "true", workflow_name == "Yes/No (Q2)")
+
 gold_yesno <- yesno %>% filter(., gold_standard == "true") %>%
      mutate(expert_answer = value) %>%
      distinct(., subject_ids, workflow_name, expert_answer)
@@ -54,7 +57,7 @@ yesno_data <- inner_join(yesno, gold_yesno) %>%
 
 # raw accuracy is the individual accuracy
 yesno_data %<>% filter(., ymd_hms(created_at) > ymd("2017-06-07")) 
-yesno_data %>% filter(user_name != "tedcheese") %>%
+yesno_data %>% filter(gold_standard != "true") %>%
      group_by(workflow_name) %>% summarise(n_distinct(subject_ids), sum(correct), n(), sum(correct)/n())
 
 yesno_data %>% filter(correct == 0) %>% View
