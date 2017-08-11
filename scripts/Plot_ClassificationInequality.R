@@ -42,7 +42,7 @@ lorenz <- data %>%
 lorenz_plot <- ggplot(lorenz, aes(x = prop_user, y = prop_class, color = experiment, linetype = user_status)) + 
      geom_line(size = 1.5) + 
      labs(x = "proportion of volunteers", y = "proportion of classifications") +
-     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16) + theme(legend.position = c(0.2, 0.7))
+     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16) + theme(legend.position = c(0.2, 0.7), legend.text=element_text(size=16))
 
 # plot distributions - what drives the skew?
 user_class <- data %>% 
@@ -55,7 +55,7 @@ density_plot <- ggplot(user_class, aes(total)) +
      theme_bw(base_size = 16) + 
      scale_x_log10(breaks = c(1, 10, 100, 1000, 10000)) +
      labs(x = "classifications per volunteer", y = "probability density") + 
-     theme(legend.position = c(0.8, 0.8)) +
+     theme(legend.position = c(0.8, 0.8)) 
 
 require(gridExtra)
 
