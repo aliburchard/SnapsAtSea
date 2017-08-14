@@ -34,17 +34,19 @@ hourly_class <- data %>%
      mutate(percent_complete = 100*cumulative_classifications/required_classifications) %>%
      gather(key = classification_type, value = classifications, -workflow_type, -hour, -required_classifications, -cumulative_classifications)
 
-legend_title <- "Workflow Type"
+legend_title <- "Workflow"
 
 pdf("figures/Figure3.pdf", width = 12, height = 6)
+jpeg("figures/Figure3.jpeg", width = 8, height = 4, units = "in", res = 600)
 ggplot(hourly_class, aes(x = hour, y = classifications)) + 
-     geom_line(aes(colour = workflow_type), size = 1.1) +
-     guides(colour=guide_legend(title="Workflow Type", title.position = "top")) +
+     geom_line(aes(colour = workflow_type), size = 1) +
+     guides(colour=guide_legend(title="Workflow", title.position = "top")) +
      facet_grid(classification_type ~ ., scales = "free_y") +
-     geom_vline(data = filter(launches, Event == "Newsletter"), aes(xintercept = as.numeric(launch_time)), colour = "dark blue", linetype = "dashed", size = 1.2) +
-     geom_vline(data = filter(launches, Event == "New Data"), aes(xintercept = as.numeric(launch_time)), colour = "dark gray", linetype = "dashed", size = 1.2) +
-     theme_bw(base_size = 16) + 
-     theme(legend.position = c(0.85, 0.85), legend.background = element_blank()) + 
-     scale_x_datetime(name="", date_breaks = "1 week", labels = date_format("%b %d")) +
-     labs(y = "")
+     geom_vline(data = filter(launches, Event == "Newsletter"), aes(xintercept = as.numeric(launch_time)), colour = "dark blue", linetype = "dashed", size = 1) +
+     geom_vline(data = filter(launches, Event == "New Data"), aes(xintercept = as.numeric(launch_time)), colour = "dark gray", linetype = "dashed", size = 1) +
+     theme_bw(base_size = 11) + 
+     scale_color_hue(labels = c("Survey", "Yes/No")) +
+     theme(legend.position = c(0.9, 0.88), legend.background = element_blank(), strip.background = element_blank(),strip.text.y = element_blank()) + 
+     scale_x_datetime(name="Date", date_breaks = "1 week", labels = date_format("%B %d")) +
+     labs(y = "Percent Complete             Hourly Classifications") 
 dev.off()

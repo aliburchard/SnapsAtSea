@@ -38,11 +38,15 @@ lorenz <- data %>%
      group_by(., project, experiment, user_status, user_name) %>%
      summarise(., num_classifications = n()) %>%
      do(grab_lorenz(., class_per_user = "num_classifications"))
+     
 
 lorenz_plot <- ggplot(lorenz, aes(x = prop_user, y = prop_class, color = experiment, linetype = user_status)) + 
-     geom_line(size = 1.5) + 
-     labs(x = "proportion of volunteers", y = "proportion of classifications") +
-     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 16) + theme(legend.position = c(0.2, 0.7), legend.text=element_text(size=16))
+     geom_line(size = .9) + 
+     labs(x = "Proportion of Volunteers", y = "Proportion of Classifications") +
+     geom_abline(intercept = 0, slope = 1, color = "gray") + theme_bw(base_size = 11) + 
+     theme(legend.position = c(0.2, 0.75), legend.background = element_blank()) +
+     scale_color_hue(name = "Workflow", labels = c("Survey", "Yes/No")) +
+     scale_linetype_manual(name = "User Status", labels = c("Existing", "New"), values = c("solid", "dotted"))
 
 # plot distributions - what drives the skew?
 user_class <- data %>% 
@@ -52,16 +56,21 @@ user_class <- data %>%
 
 density_plot <- ggplot(user_class, aes(total)) +
      geom_density(alpha = 0.4, aes(colour = experiment), position = "identity") + 
-     theme_bw(base_size = 16) + 
+     theme_bw(base_size = 11) + 
      scale_x_log10(breaks = c(1, 10, 100, 1000, 10000)) +
-     labs(x = "classifications per volunteer", y = "probability density") + 
-     theme(legend.position = c(0.8, 0.8)) 
+     labs(x = "Classifications per Volunteer", y = "Probability Density") + 
+     theme(legend.position = c(0.8, 0.85), legend.background = element_blank()) +
+     scale_color_hue(name = "Workflow", labels = c("Survey", "Yes/No"))
 
 require(gridExtra)
 
-pdf(file = "figures/Figure5_combined.pdf", width = 14, height = 7)
+pdf(file = "figures/Figure5_combined.pdf", width = 8, height = 4)
+jpeg(file = "figures/Figure5.jpeg", width = 8, height = 4, units = "in", res = 600)
 grid.arrange(lorenz_plot, density_plot, ncol=2)
 dev.off()
+
+
+
 
 bins = c(1, 10, 100, 1000, 10000)
 

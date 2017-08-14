@@ -14,6 +14,8 @@
 
 library(tidyverse)
 library(gridExtra)
+library(forcats)
+
 vol_survey <- read.csv("data/survey_responses.csv", na.strings = "")
 names <- c("Timestamp", "id", "other_projects", "type_projects", "age", "gender", "education", "workflow", "prefer_workflow", "why", "device")
 names(vol_survey) <- names
@@ -45,21 +47,24 @@ ggplot(data, aes(x=prefer_workflow)) + geom_bar(aes(fill = age), position = "sta
 
 
 
-age_summary <- data %>% group_by(age, prefer_workflow) %>% 
+age_summary <- data %>% rename(Age = age) %>%
+     group_by(Age, prefer_workflow) %>% 
      summarise(n = n()) %>% 
-     filter(prefer_workflow != "Prefer not to say", age != "Prefer not to say") %>% 
+     filter(prefer_workflow != "Prefer not to say", Age != "Prefer not to say") %>% 
      mutate(percent = n/sum(n), total = sum(n)) %>%
      gather(key = question, value = category, -prefer_workflow, -n, -percent, -total)
 
-edu_summary <- data %>% group_by(education, prefer_workflow) %>% 
+edu_summary <- data %>% rename(Education = education) %>%
+     group_by(Education, prefer_workflow) %>% 
      summarise(n = n()) %>% 
-     filter(prefer_workflow != "Prefer not to say", education != "Prefer not to say") %>% 
+     filter(prefer_workflow != "Prefer not to say", Education != "Prefer not to say") %>% 
      mutate(percent = n/sum(n), total = sum(n)) %>%
      gather(key = question, value = category, -prefer_workflow, -n, -percent, -total)
 
-gender_summary <- data %>% group_by(gender, prefer_workflow) %>% 
+gender_summary <- data %>% rename(Gender = gender) %>%
+     group_by(Gender, prefer_workflow) %>% 
      summarise(n = n()) %>% 
-     filter(prefer_workflow != "Prefer not to say", gender != "Prefer not to say") %>% 
+     filter(prefer_workflow != "Prefer not to say", Gender != "Prefer not to say") %>% 
      mutate(percent = n/sum(n), total = sum(n)) %>%
      gather(key = question, value = category, -prefer_workflow, -n, -percent, -total) %>%
      mutate()
@@ -91,22 +96,29 @@ ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_b
      facet_grid(preference~question,scales="free",space="free") + scale_fill_manual(values = color_levels)
 
 
-pdf(file = "figures/Figure6_1.pdf", width = 12.5, height = 4)
-ggplot(data = summary_dat, aes(x = category, y = percent, fill = preference)) + theme_bw() +
-     geom_bar(stat = "identity") + facet_grid(~question, scales="free",space="free") + sample_size + scale_fill_manual(values = color_levels)
+jpeg(file = "figures/Figure6.jpg", width = 9, height = 3.5, units = "in", res = 600)
+ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + theme_bw(base_size = 10) +
+     geom_bar(stat = "identity") + facet_grid(~question, scales="free",space="free") + 
+     scale_fill_manual(name = "Preference", values = color_levels) +
+     labs(x = "Category", y = "Number of Volunteers")
 dev.off()
 
-pdf(file = "figures/Figure6_2.pdf", width = 12.5, height = 4)
-ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + theme_bw() +
-     geom_bar(stat = "identity") + facet_grid(~question, scales="free",space="free") + scale_fill_manual(values = color_levels)
-dev.off()
-
-pdf(file = "figures/Figure6_3.pdf", width = 12.5, height = 4)
-ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_bar(stat = "identity", position = "dodge") + 
-     facet_grid(~question, scales ="free", space="free", shrink = T,drop = T) + scale_fill_manual(values = color_levels) + theme_bw()
-dev.off()
-
-pdf(file = "figures/Figure6_4.pdf", width = 12.5, height = 4)
-ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_bar(stat = "identity", position = "dodge") + 
-     facet_wrap(~question, nrow = 3, scales="free")  + scale_fill_manual(values = color_levels) + theme_bw()
-dev.off()
+# alternatives
+# 
+# pdf(file = "figures/Figure6_1.pdf", width = 12.5, height = 4)
+# ggplot(data = summary_dat, aes(x = category, y = percent, fill = preference)) + theme_bw() +
+#      geom_bar(stat = "identity") + facet_grid(~question, scales="free",space="free") + 
+#      sample_size + scale_fill_manual(name = "Preference", values = color_levels)
+# dev.off()
+# 
+# #pdf(file = "figures/Figure6.pdf", width = 9, height = 3.5)
+# 
+# pdf(file = "figures/Figure6_3.pdf", width = 12.5, height = 4)
+# ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_bar(stat = "identity", position = "dodge") + 
+#      facet_grid(~question, scales ="free", space="free", shrink = T,drop = T) + scale_fill_manual(values = color_levels) + theme_bw()
+# dev.off()
+# 
+# pdf(file = "figures/Figure6_4.pdf", width = 12.5, height = 4)
+# ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + geom_bar(stat = "identity", position = "dodge") + 
+#      facet_wrap(~question, nrow = 3, scales="free")  + scale_fill_manual(values = color_levels) + theme_bw()
+# dev.off()
