@@ -27,7 +27,7 @@ prefer_workflow_levels <- c("Survey Workflow", "Prefer not to say", "Yes/No Work
 ed_levels <- c("Prefer not to say", "High school or lower", "Some university", "University degree", "Graduate degree")
 age_levels <- c("<18", "18-24", "24-34", "35-44", "45-54", "55-64", "65+")
 
-data <- vol_survey %>% #filter(workflow == "Both") %>% 
+data <- vol_survey %>% filter(workflow == "Both") %>% 
      select(., id, age, gender, education, prefer_workflow) %>%
      mutate(education = factor(education, ed_levels), prefer_workflow = factor(prefer_workflow, prefer_workflow_levels)) 
 
@@ -102,6 +102,18 @@ ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + theme_
      scale_fill_manual(name = "Preference", values = color_levels) +
      labs(x = "Category", y = "Number of Volunteers")
 dev.off()
+
+jpeg(file = "figures/Figure6-talk.jpg", width = 9, height = 4, units = "in", res = 600)
+ggplot(data = summary_dat, aes(x = category, y = n, fill = preference)) + theme_bw(base_size = 10) +
+     theme(legend.position = "bottom") +
+     geom_bar(stat = "identity") + facet_grid(~question, scales="free",space="free") + 
+     scale_fill_manual(name = "Preference", values = color_levels) +
+     labs(x = "Category", y = "Number of Volunteers")
+dev.off()
+
+
+quartz()
+ggplot(data = data, aes(prefer_workflow, fill = prefer_workflow)) + geom_bar(position = "stack") + theme_bw()
 
 # alternatives
 # 
