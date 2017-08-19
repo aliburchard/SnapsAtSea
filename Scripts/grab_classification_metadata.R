@@ -1,4 +1,5 @@
 # # Read Data
+rm(list = ls())
 library(jsonlite)
 library(tidyjson)
 source("Scripts/functions.R")
@@ -30,39 +31,39 @@ write.csv(SAS_dat, "outputs/SAS_dat_with_metadata.csv", row.names = F)
 
 
 ### Grab metadata for other projects
+# ele <- read.csv("data/elephant-expedition-classifications.csv", stringsAsFactors = F)
+# ele_dat <- ele %>%
+#      grab_classification_metadata() %>%
+#      grab_mobile_info() %>%
+#      keep_metadata_rows()
+# write.csv(ele_dat, "outputs/ele_dat_with_metadata.csv", row.names = F)
+# 
+# whales <- read.csv("data/whales-as-individuals-classifications.csv", stringsAsFactors = F)
+# whale_dat <- whales %>%
+#      grab_classification_metadata() %>%
+#      grab_mobile_info() %>%
+#      keep_metadata_rows()
+# write.csv(whale_dat, "outputs/whale_dat_with_metadata.csv", row.names = F)
+# 
+# wisc <- read.csv("data/snapshot-wisconsin-classifications.csv", stringsAsFactors = F)
+# wisc_dat <- wisc %>%
+#      grab_classification_metadata() %>%
+#      grab_mobile_info() %>%
+#      keep_metadata_rows()
+# write.csv(wisc_dat, "outputs/wisc_dat_with_metadata.csv", row.names = F)
+# 
+# kenya <- read.csv("data/wildwatch-kenya-classifications.csv", stringsAsFactors = F)
+# kenya_dat <- kenya %>%
+#      grab_classification_metadata() %>%
+#      grab_mobile_info() %>%
+#      keep_metadata_rows()
+# write.csv(kenya_dat, "outputs/kenya_dat_with_metadata.csv", row.names = F)
 
 
-ele <- read.csv("data/elephant-expedition-classifications.csv", stringsAsFactors = F)
-ele_dat <- ele %>%
-     grab_classification_metadata() %>%
-     grab_mobile_info() %>%
-     keep_metadata_rows()
-write.csv(ele_dat, "outputs/ele_dat_with_metadata.csv", row.names = F)
-
-whales <- read.csv("data/whales-as-individuals-classifications.csv", stringsAsFactors = F)
-whale_dat <- whales %>%
-     grab_classification_metadata() %>%
-     grab_mobile_info() %>%
-     keep_metadata_rows()
-write.csv(whale_dat, "outputs/whale_dat_with_metadata.csv", row.names = F)
-
-wisc <- read.csv("data/snapshot-wisconsin-classifications.csv", stringsAsFactors = F)
-wisc_dat <- wisc %>%
-     grab_classification_metadata() %>%
-     grab_mobile_info() %>%
-     keep_metadata_rows()
-write.csv(wisc_dat, "outputs/wisc_dat_with_metadata.csv", row.names = F)
-
-kenya <- read.csv("data/wildwatch-kenya-classifications.csv", stringsAsFactors = F)
-kenya_dat <- kenya %>%
-     grab_classification_metadata() %>%
-     grab_mobile_info() %>%
-     keep_metadata_rows()
-write.csv(kenya_dat, "outputs/kenya_dat_with_metadata.csv", row.names = F)
-
-
-
-
-
-
-
+# check the retired dates - can't, because even though the structure is the same, the keys are different...
+q4 %>% as.tbl_json("subject_data") %>%
+     gather_keys() %>%
+     gather_keys %>% 
+     enter_object("retired") %>%
+     gather_array() %>% 
+     append_values_string("retired")

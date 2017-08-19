@@ -9,10 +9,13 @@ library(ggplot2)
 source("scripts/functions.R")
 
 sas <- read.csv("outputs/SAS_data_all.csv")
-sas %<>% tbl_df %>% filter(., experiment_status == "experiment")
+sas_dat <- sas %>% tbl_df %>% filter(., experiment_status == "experiment") %>%
+     filter(user_status != "not-logged-in") %>%
+     mutate(duration = as.numeric(difftime(finished_at, started_at, units = "secs"))) %>% 
+     filter(duration < 120)
 
 # calculate session
-user_sesh <- sas %>% 
+user_sesh <- sas_dat %>% 
      mutate(created_at = ymd_hms(created_at),
             started_at = ymd_hms(started_at),
             finished_at = ymd_hms(finished_at)) %>%
@@ -22,7 +25,7 @@ user_sesh <- sas %>%
      mutate(lag = difftime(created_at, lag(created_at), units = "mins")) %>%
      mutate(new_session = ifelse(lag > 30 | is.na(lag), 1, 0)) %>% 
      mutate(session = cumsum(new_session)) %>%
-     select(-lag, -new_session)
+     select(-new_session)
 
 head(user_sesh)
 
@@ -31,18 +34,33 @@ sessions <- user_sesh %>% group_by(user_status, user_name, session) %>%
                classification_duration = median(duration),
                first = min(created_at), 
                last = max(created_at),
-               #session_length = max(created_at)-min(created_at),
+               n_device = n_distinct(device),
+               device = first(device),
                workflows = as.factor(ifelse(n_distinct(experiment) == 1, as.character(first(experiment)), "both"))) %>%
-     mutate(session_length = last - first, user_lifetime = max(last) - min(first))
+     ungroup %>%
+     mutate(session_length = difftime(last, first, units = "mins"))
 glimpse(sessions)
 
 
+sessions %>% group_by(workflows) %>% 
+     summarise(sl = mean(session_length), sl.med = median(session_length), class = mean(classifications_per_session), class.med =median(classifications_per_session), max(session_length))
 
-ggplot(sessions, aes(classifications_per_session)) + geom_density(aes(fill = user_status), alpha = .4)
+sas %>% filter(experiment_status == "experiment") %>% group_by(experiment, user_status) %>% summarise(n_distinct(user_name), n())
 
-ggplot(sessions, aes(x = workflows, y = classifications_per_session)) + geom_boxplot()
-ggplot(sessions, aes(x = workflows, y = session_length)) + geom_boxplot()
-ggplot(sessions, aes(x = workflows, y = user_lifetime)) + geom_boxplot()
+write.csv(sessions, "outputs/session_data.csv")
+
+pdf("figures/classifications_per_session.pdf")
+ggplot(sessions, aes(x = workflows, y = classifications_per_session, color = device)) + geom_boxplot() + 
+     theme_bw(base_size = 16) + scale_y_log10()
+dev.off()
+
+pdf("figures/session_length.pdf")
+ggplot(sessions, aes(x = workflows, y = as.numeric(session_length), color = device)) + geom_boxplot() +
+     theme_bw(base_size = 16) + scale_y_log10()
+dev.off()
+
+
+ggplot(sessions, aes(x = workflows, y = classifications_per_session))
 
 ## In a given session, if you classify on both workflows, which do you spend the most time on?
 sessions_splits <- user_sesh %>% group_by(user_status, user_name, session, experiment) %>% 
@@ -56,5 +74,7 @@ x <- sessions %>% filter(., user_status != "not-logged-in") %>%
      mutate(., percent_survey = ifelse(workflows == "yesno", 0, ifelse(workflows == "survey", 100, percent_survey)))
 
 # If users classified on both workflows in a session, NEW users split their time equally, whereas old users favored the yes/no workflow
-ggplot(filter(x, workflows == "both"), aes(x = user_status, y = percent_survey)) + geom_boxplot()
 
+pdf("figures/percentage_survey_per_workflow.pdf")
+ggplot(filter(x, workflows == "both"), aes(x = user_status, y = percent_survey)) + geom_boxplot()
+dev.off()
